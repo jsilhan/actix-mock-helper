@@ -1,0 +1,14 @@
+[package]
+name = "actix-mock-helper"
+version = "0.1.0"
+authors = ["Max Polun <maxpolun@gmail.com>"]
+edition = "2018"
+license = "ISC"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix = "0.9.0"
+
+[dev_dependencies]
+actix-rt = "1"
