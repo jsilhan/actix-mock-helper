@@ -1,9 +1,11 @@
 //! actix-mock-helper is a set of helpers for creating mock actors using the `Mocker` type.
 //! That type of actor can be  used to simulate any type of mock you could want, but it's very verbose to interact with.
 //! actix-mock helper is especially useful in the case that you have multiple messages in a sequence that you want to mock
-
+#![warn(clippy::pedantic)]
 use actix::{Actor, Addr, actors::mocker::Mocker};
 use std::any::Any;
+
+pub type Callback = Box<dyn FnMut(Box<dyn Any>) -> Box<dyn Any>>;
 
 /// A mock for a sequence of messages sent to the actor
 /// Example:
@@ -33,7 +35,7 @@ use std::any::Any;
 /// }
 /// ```
 pub struct MockActorSequence {
-    callbacks: Vec<Box<dyn FnMut(Box<dyn Any>) -> Box<dyn Any>>>,
+    callbacks: Vec<Callback>,
     current: usize
 }
 
@@ -45,11 +47,12 @@ impl MockActorSequence {
     /// Add another message to be expected, and return the result of the callback.
     /// The type of the message is checked at runtime against the expectation,
     /// and the message itself is passed to the callback so that it can be used to build the result
+    /// # Panics
+    /// Panics when the received message is not the expected type. This is appropriate for testing since a panic will be a test failure.
     pub fn msg<Msg: actix::Message, Cb>(mut self, mut cb: Cb) -> Self
         where
         Msg: 'static ,
-        Cb: FnMut(&Msg) -> Msg::Result,
-        Cb: 'static {
+        Cb: FnMut(&Msg) -> Msg::Result + 'static {
         self.callbacks.push(Box::new(move |raw_msg| {
             let msg = raw_msg.downcast_ref::<Msg>().unwrap();
             let result: <Msg as actix::Message>::Result = cb(msg);
@@ -66,6 +69,12 @@ impl MockActorSequence {
             self.current += 1;
             result
         })).start()
+    }
+}
+
+impl Default for MockActorSequence {
+    fn default() -> Self {
+        MockActorSequence::new()
     }
 }
 
