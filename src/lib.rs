@@ -39,6 +39,15 @@ pub struct MockActorSequence {
     current: usize
 }
 
+impl Drop for MockActorSequence {
+    fn drop(&mut self) {
+        // assert_eq!(self.current, self.callbacks.len());
+        if self.current != self.callbacks.len() {
+            panic!("Some callbacks have not been called.");
+        }
+    }
+}
+
 impl MockActorSequence {
     pub fn new() -> Self {
         Self { callbacks: Vec::new(), current: 0 }
@@ -132,7 +141,6 @@ mod tests {
     #[actix_rt::test]
     async fn message_type_must_match() {
     let mock_actor = MockActorSequence::new()
-        .msg(|_m: &Msg1| 5)
         .build::<FakeActor>();
 
     assert!(mock_actor.send(UnknownMessage).await.is_err());
